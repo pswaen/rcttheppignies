@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>RCTT Heppignies</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f7861e">
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <!-- iPhone / iPad -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="RCTT">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <style>
+    html, body { margin: 0; height: 100%; background: #fff; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center;
+           gap: 16px; font-family: system-ui, sans-serif; color: #555; text-align: center; padding: 24px;
+           box-sizing: border-box; }
+    img { width: 140px; height: 140px; }
+    a.bouton { display: inline-block; padding: 12px 22px; border-radius: 8px; background: #f7861e;
+               color: #fff; text-decoration: none; font-size: 16px; }
+    #horsligne { display: none; }
+  </style>
+</head>
+<body>
+  <img src="icon-192.png" alt="RCTT Heppignies">
+
+  <div id="chargement">
+    <p>Ouverture de l'application…</p>
+    <p><a class="bouton" id="lien" href="#">Ouvrir RCTT Heppignies</a></p>
+  </div>
+
+  <div id="horsligne">
+    <p>Pas de connexion Internet.<br>L'application a besoin d'Internet.</p>
+    <p><a class="bouton" href="./" onclick="location.reload();return false;">Réessayer</a></p>
+  </div>
+
+  <script>
+    var APP_URL = 'https://script.google.com/macros/s/AKfycbyYLDA4k4_VPRs06na2JzP2qmIy7MXY7RHQv5q5zPTjry7JEIsQMqJn4BgUUNP92dByUw/exec';
+    document.getElementById('lien').href = APP_URL;
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+
+    if (!navigator.onLine) {
+      document.getElementById('chargement').style.display = 'none';
+      document.getElementById('horsligne').style.display = 'block';
+    } else {
+      // Petit délai pour laisser le service worker s'enregistrer, puis redirection
+      setTimeout(function () { location.replace(APP_URL); }, 400);
+    }
+  </script>
+</body>
+</html>
