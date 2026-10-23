@@ -18,43 +18,103 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
   <style>
-    html, body { margin: 0; height: 100%; background: #fff; }
+    html, body { margin: 0; min-height: 100%; background: #fff; }
     body { display: flex; flex-direction: column; align-items: center; justify-content: center;
-           gap: 16px; font-family: system-ui, sans-serif; color: #555; text-align: center; padding: 24px;
-           box-sizing: border-box; }
-    img { width: 140px; height: 140px; }
-    a.bouton { display: inline-block; padding: 12px 22px; border-radius: 8px; background: #f7861e;
-               color: #fff; text-decoration: none; font-size: 16px; }
-    #horsligne { display: none; }
+           gap: 8px; font-family: system-ui, sans-serif; color: #444; text-align: center;
+           padding: 24px; box-sizing: border-box; min-height: 100vh; }
+    img.logo { width: 160px; height: 160px; }
+    h1 { font-size: 22px; margin: 8px 0 4px; color: #222; }
+    p { margin: 6px 0; line-height: 1.45; max-width: 360px; }
+    .bouton { display: inline-block; padding: 13px 24px; border-radius: 10px; border: 0;
+              background: #f7861e; color: #fff; text-decoration: none; font-size: 17px;
+              cursor: pointer; margin: 6px 0; }
+    .lien { color: #888; font-size: 15px; margin-top: 10px; }
+    .etapes { background: #fff4ea; border-radius: 10px; padding: 12px 16px; text-align: left;
+              max-width: 360px; }
+    .cache { display: none; }
   </style>
 </head>
 <body>
-  <img src="icon-192.png" alt="RCTT Heppignies">
+  <img class="logo" src="icon-192.png" alt="RCTT Heppignies">
 
-  <div id="chargement">
+  <!-- Lancement depuis l'icône installée -->
+  <div id="vueApp" class="cache">
     <p>Ouverture de l'application…</p>
-    <p><a class="bouton" id="lien" href="#">Ouvrir RCTT Heppignies</a></p>
   </div>
 
-  <div id="horsligne">
+  <!-- Pas de connexion -->
+  <div id="vueHorsLigne" class="cache">
     <p>Pas de connexion Internet.<br>L'application a besoin d'Internet.</p>
-    <p><a class="bouton" href="./" onclick="location.reload();return false;">Réessayer</a></p>
+    <button class="bouton" onclick="location.reload()">Réessayer</button>
+  </div>
+
+  <!-- Ouverture dans le navigateur : page d'installation -->
+  <div id="vueInstall" class="cache">
+    <h1>RCTT Heppignies</h1>
+    <p>Installez l'application du club sur votre téléphone.</p>
+
+    <button id="btnInstaller" class="bouton cache">📲 Installer l'application</button>
+
+    <div id="aideAndroid" class="etapes cache">
+      Dans Chrome, touchez le menu <b>⋮</b> en haut à droite,<br>puis <b>« Installer l'application »</b>
+      (ou « Ajouter à l'écran d'accueil »).
+    </div>
+
+    <div id="aideIOS" class="etapes cache">
+      Dans <b>Safari</b>, touchez le bouton <b>Partager</b> (carré avec une flèche ↑),<br>
+      puis <b>« Sur l'écran d'accueil »</b> et <b>Ajouter</b>.
+    </div>
+
+    <p><a id="lienDirect" class="lien" href="#">Ouvrir sans installer →</a></p>
   </div>
 
   <script>
     var APP_URL = 'https://script.google.com/macros/s/AKfycbyYLDA4k4_VPRs06na2JzP2qmIy7MXY7RHQv5q5zPTjry7JEIsQMqJn4BgUUNP92dByUw/exec';
-    document.getElementById('lien').href = APP_URL;
+    function montrer(id) { document.getElementById(id).classList.remove('cache'); }
+
+    document.getElementById('lienDirect').href = APP_URL;
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
     }
 
-    if (!navigator.onLine) {
-      document.getElementById('chargement').style.display = 'none';
-      document.getElementById('horsligne').style.display = 'block';
+    var installee = window.matchMedia('(display-mode: standalone)').matches ||
+                    window.matchMedia('(display-mode: fullscreen)').matches ||
+                    window.navigator.standalone === true;
+
+    if (installee) {
+      // Lancée depuis l'icône : on ouvre directement l'application du club
+      if (navigator.onLine) {
+        montrer('vueApp');
+        location.replace(APP_URL);
+      } else {
+        montrer('vueHorsLigne');
+      }
     } else {
-      // Petit délai pour laisser le service worker s'enregistrer, puis redirection
-      setTimeout(function () { location.replace(APP_URL); }, 400);
+      // Ouverte dans le navigateur : on propose l'installation
+      montrer('vueInstall');
+      var estIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      montrer(estIOS ? 'aideIOS' : 'aideAndroid');
+
+      // Android / Chrome : bouton d'installation direct quand le navigateur le permet
+      var demandeInstall = null;
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        demandeInstall = e;
+        montrer('btnInstaller');
+        document.getElementById('aideAndroid').classList.add('cache');
+      });
+      document.getElementById('btnInstaller').addEventListener('click', function () {
+        if (!demandeInstall) return;
+        demandeInstall.prompt();
+        demandeInstall.userChoice.then(function () { demandeInstall = null; });
+      });
+      window.addEventListener('appinstalled', function () {
+        document.getElementById('btnInstaller').classList.add('cache');
+        document.querySelector('#vueInstall p').textContent =
+          'Application installée ✅ Ouvrez-la depuis l\'icône RCTT sur votre écran d\'accueil.';
+      });
     }
   </script>
 </body>
