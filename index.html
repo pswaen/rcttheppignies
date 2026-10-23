@@ -83,6 +83,44 @@
     // Google sont connectés (cause du "Page introuvable").
     var credentiallessOK = ('credentialless' in HTMLIFrameElement.prototype);
 
+    // ===== Rester connecté (jusqu'à 30 jours) =====
+    // Le cadre "sans identifiants" oublie tout à chaque fermeture. Cette page,
+    // elle, garde un stockage durable : l'application lui confie son jeton de
+    // session (jamais le mot de passe) et le récupère au démarrage.
+    var CLE_SESSION = 'rctt_pwa_session';
+    var CLE_EMAIL = 'rctt_pwa_email';
+    var ORIGINE_APP = /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/;
+
+    function lire(cle) { try { return localStorage.getItem(cle); } catch (e) { return null; } }
+    function ecrire(cle, val) { try { localStorage.setItem(cle, val); } catch (e) {} }
+    function effacer(cle) { try { localStorage.removeItem(cle); } catch (e) {} }
+
+    window.addEventListener('message', function (ev) {
+      if (!ORIGINE_APP.test(ev.origin) || !ev.data || typeof ev.data !== 'object') return;
+      // Sécurité : on ne répond qu'à l'application chargée dans NOTRE cadre
+      // (Apps Script place le code dans 2 cadres imbriqués : on remonte la chaîne)
+      var cadre = document.getElementById('cadre');
+      if (!cadre || !ev.source) return;
+      var w = ev.source, dansNotreCadre = false;
+      for (var n = 0; n < 5 && w; n++) {
+        if (w === cadre.contentWindow) { dansNotreCadre = true; break; }
+        if (w === w.parent) break;
+        w = w.parent;
+      }
+      if (!dansNotreCadre) return;
+
+      if (ev.data.type === 'rctt-demande-session') {
+        var session = null;
+        try { session = JSON.parse(lire(CLE_SESSION) || 'null'); } catch (e) { session = null; }
+        ev.source.postMessage({ type: 'rctt-session', session: session, email: lire(CLE_EMAIL) || '' }, ev.origin);
+      } else if (ev.data.type === 'rctt-memoriser' && ev.data.session && ev.data.session.token) {
+        ecrire(CLE_SESSION, JSON.stringify(ev.data.session));
+        if (ev.data.email) ecrire(CLE_EMAIL, ev.data.email);
+      } else if (ev.data.type === 'rctt-oublier') {
+        effacer(CLE_SESSION);   // l'e-mail est conservé pour pré-remplir la connexion
+      }
+    });
+
     function ouvrirApplication() {
       if (!navigator.onLine) { montrer('vueHorsLigne'); return; }
       if (credentiallessOK) {

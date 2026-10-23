@@ -1,7 +1,7 @@
 // Service worker RCTT Heppignies
 // Met en cache la page d'entrée et les icônes (démarrage rapide).
 // Les données viennent d'Apps Script et nécessitent Internet.
-const CACHE = 'rctt-v5';   // changer en v2, v3… à chaque modification de ces fichiers
+const CACHE = 'rctt-v6';   // changer en v2, v3… à chaque modification de ces fichiers
 const FICHIERS = [
   './',
   './index.html',
