@@ -32,6 +32,12 @@
     .etapes { background: #fff4ea; border-radius: 10px; padding: 12px 16px; text-align: left;
               max-width: 360px; }
     #cadre { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+    .alerte { background: #fff1e0; border: 2px solid #f7861e; border-radius: 10px; padding: 14px 16px;
+              text-align: left; max-width: 360px; line-height: 1.5; }
+    .alerte b.titre { display: block; font-size: 17px; margin-bottom: 6px; color: #b85c00; }
+    .alerte ol { margin: 6px 0 0 18px; padding: 0; }
+    .bouton.secondaire { background: #fff; color: #f7861e; border: 2px solid #f7861e; font-size: 15px; padding: 10px 18px; }
+    .petit { font-size: 13px; color: #888; margin-top: 8px; }
     .cache { display: none; }
   </style>
 </head>
@@ -64,6 +70,35 @@
     <div id="aideIOS" class="etapes cache">
       Dans <b>Safari</b>, touchez le bouton <b>Partager</b> (carré avec une flèche ↑),<br>
       puis <b>« Sur l'écran d'accueil »</b> et <b>Ajouter</b>.
+      <p class="petit">Pas d'option « Sur l'écran d'accueil » ? Vous êtes peut-être dans l'aperçu
+        d'une autre application : touchez l'icône <b>boussole 🧭</b> ou <b>« Ouvrir dans Safari »</b>, puis recommencez.</p>
+    </div>
+
+    <!-- iPhone, mais pas dans Safari (WhatsApp, Messenger, Facebook, Gmail, Chrome iOS...) -->
+    <div id="alerteIOS" class="alerte cache">
+      <b class="titre">⚠️ Pour installer l'application, ouvrez ce lien dans Safari</b>
+      <span id="alerteIOSdetail"></span>
+      <ol>
+        <li id="alerteIOSetape1">Touchez <b>⋯</b> (ou l'icône boussole 🧭) puis <b>« Ouvrir dans Safari »</b>.</li>
+        <li>Dans Safari : bouton <b>Partager</b> (carré avec flèche ↑) → <b>« Sur l'écran d'accueil »</b> → <b>Ajouter</b>.</li>
+      </ol>
+      <p style="text-align:center;margin-top:10px">
+        <button id="btnCopierIOS" class="bouton secondaire">📋 Copier le lien</button>
+      </p>
+      <p class="petit">Si rien ne fonctionne : copiez le lien, ouvrez Safari et collez-le dans la barre d'adresse.</p>
+    </div>
+
+    <!-- Android, dans le navigateur intégré d'une application -->
+    <div id="alerteAndroid" class="alerte cache">
+      <b class="titre">⚠️ Pour installer l'application, ouvrez ce lien dans Chrome</b>
+      Vous êtes dans le navigateur intégré d'une application (WhatsApp, Messenger, Facebook…).
+      <ol>
+        <li>Touchez le menu <b>⋮</b> puis <b>« Ouvrir dans Chrome »</b> (ou « Ouvrir dans le navigateur »).</li>
+        <li>Dans Chrome : bouton <b>« Installer l'application »</b> ou menu ⋮ → <b>« Installer l'application »</b>.</li>
+      </ol>
+      <p style="text-align:center;margin-top:10px">
+        <button id="btnCopierAndroid" class="bouton secondaire">📋 Copier le lien</button>
+      </p>
     </div>
 
     <p><a id="lienDirect" class="lien" href="#">Ouvrir sans installer →</a></p>
@@ -156,7 +191,43 @@
       montrer('vueInstall');
       var estIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-      montrer(estIOS ? 'aideIOS' : 'aideAndroid');
+      var ua = navigator.userAgent || '';
+      var LIEN = 'https://pswaen.github.io/rcttheppignies/';
+
+      // Navigateurs iOS autres que Safari, et navigateurs intégrés des applications
+      var iosAutreNavigateur = /CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|YaBrowser|DuckDuckGo/i.test(ua);
+      var iosAppIntegree = /FBAN|FBAV|FB_IAB|Messenger|Instagram|WhatsApp|Line\/|GSA\/|Snapchat|LinkedInApp|Twitter|MicroMessenger/i.test(ua) ||
+                           (estIOS && !/Safari\//.test(ua));   // vue web intégrée = pas de "Safari/" dans l'identifiant
+      var androidAppIntegree = !estIOS && (/; wv\)|FBAN|FBAV|FB_IAB|Instagram|Line\/|Snapchat|LinkedInApp/i.test(ua));
+
+      function copierLien(btn) {
+        function ok() { btn.textContent = '✅ Lien copié'; }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(LIEN).then(ok, function () { window.prompt('Copiez ce lien :', LIEN); });
+        } else {
+          window.prompt('Copiez ce lien :', LIEN);
+        }
+      }
+      document.getElementById('btnCopierIOS').addEventListener('click', function () { copierLien(this); });
+      document.getElementById('btnCopierAndroid').addEventListener('click', function () { copierLien(this); });
+
+      if (estIOS && (iosAutreNavigateur || iosAppIntegree)) {
+        if (iosAutreNavigateur) {
+          var nom = /CriOS/i.test(ua) ? 'Chrome' : /EdgiOS/i.test(ua) ? 'Edge' : /FxiOS/i.test(ua) ? 'Firefox' : 'un autre navigateur';
+          document.getElementById('alerteIOSdetail').textContent =
+            'Vous utilisez ' + nom + ' : sur iPhone, l\'installation se fait depuis Safari.';
+          document.getElementById('alerteIOSetape1').innerHTML =
+            'Copiez le lien (bouton ci-dessous), ouvrez <b>Safari</b> et collez-le dans la barre d\'adresse.';
+        } else {
+          document.getElementById('alerteIOSdetail').textContent =
+            'Vous êtes dans l\'aperçu d\'une application (WhatsApp, Messenger, Facebook, e-mail…).';
+        }
+        montrer('alerteIOS');
+      } else if (androidAppIntegree) {
+        montrer('alerteAndroid');
+      } else {
+        montrer(estIOS ? 'aideIOS' : 'aideAndroid');
+      }
 
       var demandeInstall = null;
       window.addEventListener('beforeinstallprompt', function (e) {
