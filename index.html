@@ -82,11 +82,28 @@
                     window.matchMedia('(display-mode: fullscreen)').matches ||
                     window.navigator.standalone === true;
 
+    var estAndroid = /android/i.test(navigator.userAgent);
+
+    // Sur Android, l'appli Google Drive intercepte les liens script.google.com
+    // et affiche "Impossible d'ouvrir le fichier". On force donc l'ouverture
+    // dans Chrome (ou dans le navigateur par défaut si Chrome est absent).
+    function urlOuverture() {
+      if (!estAndroid) return APP_URL;
+      return 'intent://' + APP_URL.replace(/^https:\/\//, '') +
+             '#Intent;scheme=https;package=com.android.chrome;' +
+             'S.browser_fallback_url=' + encodeURIComponent(APP_URL) + ';end';
+    }
+
+    document.getElementById('lienDirect').href = urlOuverture();
+
     if (installee) {
       // Lancée depuis l'icône : on ouvre directement l'application du club
       if (navigator.onLine) {
         montrer('vueApp');
-        location.replace(APP_URL);
+        document.getElementById('vueApp').innerHTML =
+          '<p>Ouverture de l\'application…</p>' +
+          '<p><a class="bouton" href="' + urlOuverture() + '">Ouvrir RCTT Heppignies</a></p>';
+        location.replace(urlOuverture());
       } else {
         montrer('vueHorsLigne');
       }
